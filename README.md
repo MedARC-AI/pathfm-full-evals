@@ -114,12 +114,14 @@ Run all four suites:
 
 ```bash
 ./submit_all.sh
+./submit_all.sh --embeddings=retain
 ```
 
 Run the three suites that do not require PathoROB:
 
 ```bash
 ./submit_all.sh --no-pathorob
+./submit_all.sh --no-pathorob --embeddings=retain
 ```
 
 Run one suite:
@@ -129,7 +131,12 @@ Run one suite:
 ./submit_suite.sh hest
 ./submit_suite.sh cptac
 ./submit_suite.sh pathorob
+./submit_suite.sh thunder --embeddings=retain
 ```
+
+Precomputed embeddings are removed by default. Pass `--embeddings=retain` to keep each
+suite's persistent embeddings after its consumers finish; `--embeddings=remove` selects
+the default explicitly. Job-scoped scratch data under `/tmp` is always removed.
 
 The submitters use native Slurm arrays with `%2` for GPU work and `%8` for independent
 CPU fits. Slurm schedules the next array element as a worker becomes available; there is
@@ -158,23 +165,24 @@ sacct -j <job> --format=JobID,JobName,State,Elapsed,MaxRSS,AllocTRES
 | GPU | preflight | Manifest, data, code, environment, model, gradient, and regression validation |
 | GPU | THUNDER precompute | Classification embeddings for 16 datasets |
 | GPU | THUNDER cached | KNN, linear/calibration, and 16-shot SimpleShot |
-| CPU | THUNDER cleanup | Validate cached-probe outputs, then delete classification caches |
+| CPU | THUNDER cleanup | Validate cached-probe outputs, then apply the embedding retention policy |
 | GPU | THUNDER online | Four segmentation tasks and PGD attacks |
 | CPU | THUNDER summary | Produce the six-row leaderboard summary |
 | GPU | HEST extract | Extract all nine datasets in three balanced groups |
 | CPU | HEST probes | PCA-256 and Ridge for all nine datasets |
-| CPU | HEST finalize | Aggregate Pearson scores and delete embeddings |
+| CPU | HEST finalize | Aggregate Pearson scores and apply the embedding retention policy |
 | GPU | PathoROB extract | Extract all three datasets |
 | CPU | PathoROB metrics | Nine dataset/metric combinations |
-| CPU | PathoROB finalize | Validate summaries and delete features |
+| CPU | PathoROB finalize | Validate summaries and apply the embedding retention policy |
 | GPU | CPTAC extract | Eight balanced slide shards, capped at two concurrent H100s |
 | CPU | CPTAC pool | Pool slide means to cases |
 | CPU | CPTAC probes | 38 classification fits and 12 survival-alpha fits |
-| CPU | CPTAC finalize | Aggregate results and delete temporary embeddings |
+| CPU | CPTAC finalize | Aggregate results and apply the embedding retention policy |
 
 HEST and PathoROB share one GPU array in the full run. Their CPU stages then proceed
-independently while THUNDER and CPTAC use the GPUs. Intermediate embeddings are removed
-only after every consumer has produced a readable result.
+independently while THUNDER and CPTAC use the GPUs. By default, intermediate embeddings
+are removed only after every consumer has produced a readable result; the retain option
+keeps them in their suite output directories.
 
 ## Results
 
@@ -219,7 +227,8 @@ Other paper shot counts and experiments are not run.
 
 All nine current tasks retain PCA-256, Ridge LSQR, official splits, and Pearson
 correlation. GPU extraction is separated from CPU probing, the optional ResNet-50 side
-baseline is omitted, and specimen embeddings are deleted after aggregation.
+baseline is omitted, and specimen embeddings follow the submission's retention policy
+after aggregation.
 
 ### CPTAC / Patho-Bench
 
@@ -235,7 +244,8 @@ explicit `null`; all other failures stop the job.
 Robustness index, average performance drop, and clustering are run on Camelyon, TCGA,
 and Tolkach ESCA. The adapter supplies the published `clsmean` representation and
 model-specific transform. Features are stored in packed per-center arrays, shared by all
-three metrics, and deleted only after all expected JSON outputs parse successfully.
+three metrics, and follow the submission's retention policy only after all expected JSON
+outputs parse successfully.
 
 ## Reference validation
 

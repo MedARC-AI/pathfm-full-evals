@@ -17,6 +17,7 @@ export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1
 export OPENBLAS_NUM_THREADS=1
 [[ "${EVAL_STAGE:-}" == "preflight" || "${EVAL_STAGE:-}" == "thunder_precompute" || "${EVAL_STAGE:-}" == "thunder_cached" || "${EVAL_STAGE:-}" == "hest_pathorob" || "${EVAL_STAGE:-}" == "hest_extract" || "${EVAL_STAGE:-}" == "pathorob_extract" || "${EVAL_STAGE:-}" == "cptac_extract" || "${EVAL_STAGE:-}" == "thunder_online" ]]
+[[ "${RETAIN_EMBEDDINGS:-}" == 0 || "${RETAIN_EMBEDDINGS:-}" == 1 ]]
 
 repo=$PWD
 if [[ "$EVAL_STAGE" == "preflight" ]]; then

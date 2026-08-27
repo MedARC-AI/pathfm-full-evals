@@ -64,5 +64,11 @@ for name in ("hest_eval.py", "pathorob_eval.py", "thunder_eval.py"):
 for name in ("run_gpu.sbatch", "run_cpu.sbatch"):
     source = (Path(__file__).parent / name).read_text()
     assert "noclobber" not in source and "scontrol requeue" not in source
+    assert "RETAIN_EMBEDDINGS" in source
+for name in ("submit_all.sh", "submit_suite.sh"):
+    source = (Path(__file__).parent / name).read_text()
+    assert "--embeddings=remove" in source and "--embeddings=retain" in source
+for name in ("hest_eval.py", "pathorob_eval.py", "thunder_eval.py", "cptac_eval.py"):
+    assert "RETAIN_EMBEDDINGS" in (Path(__file__).parent / name).read_text()
 
-print("PASS manifest, THUNDER API, KNN, int8 cache, scratch isolation, and native arrays")
+print("PASS manifest, THUNDER API, KNN, int8 cache, scratch isolation, retention, and native arrays")

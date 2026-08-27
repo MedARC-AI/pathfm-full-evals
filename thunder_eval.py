@@ -39,6 +39,8 @@ MODEL_NAME = settings["MODEL_NAME"]
 EXTRACTION_BATCH = settings["EXTRACTION_BATCH"]
 ATTACK_BATCH = settings["ATTACK_BATCH"]
 verify_manifest()
+assert os.environ["RETAIN_EMBEDDINGS"] in ("0", "1")
+RETAIN_EMBEDDINGS = os.environ["RETAIN_EMBEDDINGS"] == "1"
 if mode in ("precompute", "precompute_group", "adversarial", "adversarial_group", "segmentation"):
     from model import AMP_DTYPE
 
@@ -168,9 +170,11 @@ if mode == "cleanup":
         for path in expected:
             json.loads(Path(path).read_text())
         cache = f"{EMBEDDINGS}/{dataset}/{MODEL_ID}"
-        if os.path.exists(cache):
+        if os.path.exists(cache) and not RETAIN_EMBEDDINGS:
             shutil.rmtree(cache)
             print(f"[{MODEL_ID}/{dataset}] cached probes complete; cache deleted", flush=True)
+        elif os.path.exists(cache):
+            print(f"[{MODEL_ID}/{dataset}] cached probes complete; cache retained", flush=True)
     sys.exit(0)
 
 assert len(sys.argv) >= 3 and sys.argv[2].isdigit()
@@ -203,7 +207,7 @@ if mode in ("precompute", "precompute_group"):
         if all(os.path.exists(path) for path in expected):
             for path in expected:
                 json.loads(Path(path).read_text())
-            if os.path.exists(cache):
+            if os.path.exists(cache) and not RETAIN_EMBEDDINGS:
                 shutil.rmtree(cache)
             print(f"[{MODEL_ID}/{dataset}] cached probe outputs already complete", flush=True)
             continue

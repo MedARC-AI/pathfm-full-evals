@@ -20,6 +20,8 @@ assert len(sys.argv) >= 2 and sys.argv[1] in ("extract", "pool", "probe", "final
 settings = read_model_settings()
 MODEL_NAME = settings["MODEL_NAME"]
 verify_manifest()
+assert os.environ["RETAIN_EMBEDDINGS"] in ("0", "1")
+RETAIN_EMBEDDINGS = os.environ["RETAIN_EMBEDDINGS"] == "1"
 OUT_ROOT = f"{RUN_ROOT}/cptac/{MODEL_NAME}"
 DATASETS = [
     "cptac_brca", "cptac_ccrcc", "cptac_coad", "cptac_gbm", "cptac_hnsc",
@@ -344,9 +346,13 @@ else:
             "survival_cindex_by_alpha": survival,
         }, indent=2) + "\n")
         os.replace(temporary, aggregate)
-        if os.path.exists(meanpool_dir):
-            shutil.rmtree(meanpool_dir)
-        if os.path.exists(case_dir):
-            shutil.rmtree(case_dir)
+        if not RETAIN_EMBEDDINGS:
+            if os.path.exists(meanpool_dir):
+                shutil.rmtree(meanpool_dir)
+            if os.path.exists(case_dir):
+                shutil.rmtree(case_dir)
         Path(f"{OUT_ROOT}/.complete").touch()
-        print("probes DONE; temporary embeddings deleted", flush=True)
+        print(
+            f"probes DONE; temporary embeddings {'retained' if RETAIN_EMBEDDINGS else 'deleted'}",
+            flush=True,
+        )

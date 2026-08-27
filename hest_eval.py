@@ -26,6 +26,8 @@ settings = read_model_settings()
 MODEL_NAME = settings["MODEL_NAME"]
 AMP_DTYPE = settings["AMP_DTYPE"]
 verify_manifest()
+assert os.environ["RETAIN_EMBEDDINGS"] in ("0", "1")
+RETAIN_EMBEDDINGS = os.environ["RETAIN_EMBEDDINGS"] == "1"
 
 if sys.argv[1] in ("extract", "extract_group"):
     assert len(sys.argv) == 3
@@ -63,7 +65,7 @@ if sys.argv[1] in ("extract", "extract_group"):
             float(json.loads(summary.read_text())["pearson"])
             for run_dir in summary.parent.glob(f"{MODEL_NAME}::*"):
                 shutil.rmtree(run_dir)
-            if embedding_dir.exists():
+            if embedding_dir.exists() and not RETAIN_EMBEDDINGS:
                 shutil.rmtree(embedding_dir)
             print(f"DONE {dataset}; result already exists", flush=True)
             continue
@@ -128,7 +130,7 @@ elif sys.argv[1] == "probe":
         float(json.loads(summary.read_text())["pearson"])
         for run_dir in summary.parent.glob(f"{MODEL_NAME}::*"):
             shutil.rmtree(run_dir)
-        if embedding_dir.exists():
+        if embedding_dir.exists() and not RETAIN_EMBEDDINGS:
             shutil.rmtree(embedding_dir)
         print(f"DONE {dataset}; result already exists", flush=True)
         sys.exit(0)
@@ -157,8 +159,11 @@ elif sys.argv[1] == "probe":
     os.replace(temporary, summary)
     for run_dir in summary.parent.glob(f"{MODEL_NAME}::*"):
         shutil.rmtree(run_dir)
-    shutil.rmtree(embedding_dir)
-    print(f"DONE {dataset}: Pearson {score:.4f}; embeddings deleted", flush=True)
+    if RETAIN_EMBEDDINGS:
+        print(f"DONE {dataset}: Pearson {score:.4f}; embeddings retained", flush=True)
+    else:
+        shutil.rmtree(embedding_dir)
+        print(f"DONE {dataset}: Pearson {score:.4f}; embeddings deleted", flush=True)
 
 else:
     assert sys.argv[1] == "aggregate" and len(sys.argv) == 2
@@ -174,8 +179,9 @@ else:
         "mean_pearson": sum(scores.values()) / len(scores),
     }, indent=2) + "\n")
     os.replace(temporary, aggregate)
-    embedding_root = Path(f"{EMBED_ROOT}/{MODEL_NAME}")
-    if embedding_root.exists():
-        assert not any(embedding_root.iterdir())
-        embedding_root.rmdir()
+    if not RETAIN_EMBEDDINGS:
+        embedding_root = Path(f"{EMBED_ROOT}/{MODEL_NAME}")
+        if embedding_root.exists():
+            assert not any(embedding_root.iterdir())
+            embedding_root.rmdir()
     print(f"DONE: mean Pearson {sum(scores.values()) / len(scores):.4f}", flush=True)

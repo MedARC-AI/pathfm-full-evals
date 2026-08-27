@@ -2,17 +2,26 @@
 
 set -euo pipefail
 cd "$(dirname "$0")"
-[[ $# == 0 || ( $# == 1 && "$1" == "--no-pathorob" ) ]] || {
-  echo "usage: ./submit_all.sh [--no-pathorob]" >&2
-  exit 2
-}
+include_pathorob=1
+export RETAIN_EMBEDDINGS=0
+for argument in "$@"; do
+  case "$argument" in
+    --no-pathorob) include_pathorob=0 ;;
+    --embeddings=remove) RETAIN_EMBEDDINGS=0 ;;
+    --embeddings=retain) RETAIN_EMBEDDINGS=1 ;;
+    *)
+      echo "usage: ./submit_all.sh [--no-pathorob] [--embeddings=remove|retain]" >&2
+      exit 2
+      ;;
+  esac
+done
 mkdir -p "/data/$USER/pathfm-full-evals/logs"
 
 preflight_suites=thunder:hest:cptac:pathorob
-[[ $# == 0 ]] || preflight_suites=thunder:hest:cptac
+[[ "$include_pathorob" == 1 ]] || preflight_suites=thunder:hest:cptac
 preflight_job=$(sbatch --parsable --job-name=eval_preflight --array=0-0 --mem=32G \
   --export=ALL,EVAL_STAGE=preflight,PREFLIGHT_SUITES="$preflight_suites" run_gpu.sbatch)
-if [[ $# == 0 ]]; then
+if [[ "$include_pathorob" == 1 ]]; then
   extract_job=$(sbatch --parsable --job-name=hest_pathorob --array=0-5%2 --mem=144G \
     --dependency="afterok:$preflight_job" --export=ALL,EVAL_STAGE=hest_pathorob run_gpu.sbatch)
 else
@@ -23,7 +32,7 @@ hest_probe_job=$(sbatch --parsable --job-name=hest_probes --array=0-8%8 \
   --dependency="afterok:$extract_job" --export=ALL,CPU_STAGE=hest_probes run_cpu.sbatch)
 hest_final_job=$(sbatch --parsable --job-name=hest_finalize --array=0-0 \
   --dependency="afterok:$hest_probe_job" --export=ALL,CPU_STAGE=hest_finalize run_cpu.sbatch)
-if [[ $# == 0 ]]; then
+if [[ "$include_pathorob" == 1 ]]; then
   pathorob_metrics_job=$(sbatch --parsable --job-name=pathorob_metrics --array=0-8%8 \
     --dependency="afterok:$extract_job" --export=ALL,CPU_STAGE=pathorob_metrics run_cpu.sbatch)
   pathorob_final_job=$(sbatch --parsable --job-name=pathorob_finalize --array=0-0 \
@@ -47,7 +56,7 @@ cptac_final_job=$(sbatch --parsable --job-name=cptac_finalize --array=0-0 \
   --dependency="afterok:$cptac_job" --export=ALL,CPU_STAGE=cptac_finalize run_cpu.sbatch)
 summary_job=$(sbatch --parsable --job-name=thunder_summary \
   --array=0-0 --dependency="afterok:$thunder_job" --export=ALL,CPU_STAGE=thunder_summary run_cpu.sbatch)
-if [[ $# == 0 ]]; then
+if [[ "$include_pathorob" == 1 ]]; then
   echo "preflight=$preflight_job HEST-PathoROB=$extract_job HEST-probes=$hest_probe_job HEST-finalize=$hest_final_job PathoROB-metrics=$pathorob_metrics_job PathoROB-finalize=$pathorob_final_job THUNDER-precompute=$precompute_job THUNDER-cached-probes=$cached_job THUNDER-cleanup=$cleanup_job CPTAC-extract=$cptac_extract_job CPTAC-pool=$pool_job CPTAC-probes=$cptac_job CPTAC-finalize=$cptac_final_job THUNDER-online=$thunder_job THUNDER-summary=$summary_job"
 else
   echo "preflight=$preflight_job HEST-extract=$extract_job HEST-probes=$hest_probe_job HEST-finalize=$hest_final_job THUNDER-precompute=$precompute_job THUNDER-cached-probes=$cached_job THUNDER-cleanup=$cleanup_job CPTAC-extract=$cptac_extract_job CPTAC-pool=$pool_job CPTAC-probes=$cptac_job CPTAC-finalize=$cptac_final_job THUNDER-online=$thunder_job THUNDER-summary=$summary_job"

@@ -23,6 +23,8 @@ assert len(sys.argv) >= 2 and sys.argv[1] in ("extract", "metric", "finalize")
 settings = read_model_settings()
 MODEL_NAME = settings["MODEL_NAME"]
 verify_manifest()
+assert os.environ["RETAIN_EMBEDDINGS"] in ("0", "1")
+RETAIN_EMBEDDINGS = os.environ["RETAIN_EMBEDDINGS"] == "1"
 if sys.argv[1] == "extract":
     assert len(sys.argv) == 3 and sys.argv[2] in ("camelyon", "tcga", "tolkach_esca")
     scratch_root = Path(
@@ -85,7 +87,7 @@ if sys.argv[1] == "extract":
         for path in EXPECTED[dataset]:
             json.loads(Path(path).read_text())
         json.loads(Path(f"{RESULTS_ROOT}/apd/{NAME}/aggregated_summary.json").read_text())
-        if os.path.exists(dataset_dir):
+        if os.path.exists(dataset_dir) and not RETAIN_EMBEDDINGS:
             shutil.rmtree(dataset_dir)
         print(f"DONE PathoROB-{dataset}; results already complete", flush=True)
         sys.exit(0)
@@ -119,9 +121,13 @@ else:
                 json.loads(Path(path).read_text())
         json.loads(Path(f"{RESULTS_ROOT}/apd/{NAME}/aggregated_summary.json").read_text())
         stale_features = os.path.join(FEATURES_DIR, NAME)
-        if os.path.exists(stale_features):
+        if os.path.exists(stale_features) and not RETAIN_EMBEDDINGS:
             shutil.rmtree(stale_features)
-        print("DONE; all PathoROB results already exist and temporary features are absent", flush=True)
+        print(
+            f"DONE; all PathoROB results already exist and temporary features are "
+            f"{'retained' if RETAIN_EMBEDDINGS else 'absent'}",
+            flush=True,
+        )
         sys.exit(0)
 
     for dataset in DATASETS:
@@ -200,5 +206,10 @@ else:
             for path in paths:
                 json.loads(Path(path).read_text())
         json.loads(Path(f"{RESULTS_ROOT}/apd/{NAME}/aggregated_summary.json").read_text())
-        shutil.rmtree(os.path.join(FEATURES_DIR, NAME))
-        print("DONE; all three PathoROB metrics saved and temporary features deleted", flush=True)
+        if not RETAIN_EMBEDDINGS:
+            shutil.rmtree(os.path.join(FEATURES_DIR, NAME))
+        print(
+            f"DONE; all three PathoROB metrics saved and temporary features "
+            f"{'retained' if RETAIN_EMBEDDINGS else 'deleted'}",
+            flush=True,
+        )

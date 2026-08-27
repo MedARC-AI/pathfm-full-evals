@@ -17,6 +17,7 @@ export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 export MKL_NUM_THREADS=$SLURM_CPUS_PER_TASK
 export OPENBLAS_NUM_THREADS=$SLURM_CPUS_PER_TASK
 [[ "${CPU_STAGE:-}" == "hest_probes" || "${CPU_STAGE:-}" == "pathorob_metrics" || "${CPU_STAGE:-}" == "thunder_cleanup" || "${CPU_STAGE:-}" == "cptac_pool" || "${CPU_STAGE:-}" == "cptac_probes" || "${CPU_STAGE:-}" == "thunder_summary" || "${CPU_STAGE:-}" == "hest_finalize" || "${CPU_STAGE:-}" == "pathorob_finalize" || "${CPU_STAGE:-}" == "cptac_finalize" ]]
+[[ "${RETAIN_EMBEDDINGS:-}" == 0 || "${RETAIN_EMBEDDINGS:-}" == 1 ]]
 
 repo=$PWD
 tasks=()
