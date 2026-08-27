@@ -1,0 +1,78 @@
+diff --git a/pathorob/features/data_manager.py b/pathorob/features/data_manager.py
+index f2c59fc..dad2524 100644
+--- a/pathorob/features/data_manager.py
++++ b/pathorob/features/data_manager.py
+@@ -44,18 +44,18 @@ class FeatureDataManager:
+         # Assign unique identifiers to the features
+         metadata = metadata.copy()
+         metadata.insert(0, "id", self.compute_ids(metadata))
++        features = features.numpy()
+         # Divide the features into chunks
+         for chunk_id in metadata[self.chunk_key].unique():
+-            # Check for existing features
+             chunk_file = dataset_dir / f"{chunk_id.replace(' ', '_')}.npz"
+-            if chunk_file.is_file():
+-                features_dict = dict(np.load(chunk_file))
+-            else:
+-                features_dict = {}
+-            # Save chunk
++            assert not chunk_file.is_file()
+             metadata_chunk = metadata[metadata[self.chunk_key] == chunk_id]
+-            features_dict.update({id: features[idx] for idx, id in metadata_chunk["id"].items()})
+-            np.savez(chunk_file, **features_dict)
++            indices = metadata_chunk.index.to_numpy()
++            np.savez(
++                chunk_file,
++                ids=metadata_chunk["id"].to_numpy(dtype=str),
++                features=features[indices],
++            )
+ 
+     def load_features(self, model_name, dataset_name, metadata):
+         # Load dataset path
+@@ -77,8 +77,11 @@ class FeatureDataManager:
+                 raise ValueError(
+                     f"Cannot find features for chunk '{chunk_id}' at: '{chunk_file}'."
+                 )
+-            features_chunk = dict(np.load(chunk_file))
+-            features_dict.update({id: features_chunk[id] for id in metadata_chunk["id"].unique()})
++            with np.load(chunk_file) as features_chunk:
++                ids = features_chunk["ids"].astype(str)
++                values = features_chunk["features"]
++            assert len(ids) == len(values) and len(set(ids)) == len(ids)
++            features_dict.update(zip(ids, values))
+         # Sort features according to given metadata structure
+         features = np.stack([features_dict[id] for id in metadata["id"]])
+         return features
+diff --git a/pathorob/features/extract_features.py b/pathorob/features/extract_features.py
+index 9bbaf4e..b077e8f 100644
+--- a/pathorob/features/extract_features.py
++++ b/pathorob/features/extract_features.py
+@@ -68,7 +68,11 @@ def extract_features(model_wrapper, data_manager, model_name, dataset_name, data
+     print(f"Loading 'PathoROB-{dataset_name}' dataset...")
+     dataset = load_dataset(dataset_path, split="train")
+     dataset.set_transform(lambda x: preprocess_fn(x, model_wrapper.get_preprocess()))
+-    data_loader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
++    data_loader = DataLoader(
++        dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False,
++        pin_memory=True, persistent_workers=num_workers > 0,
++        prefetch_factor=2 if batch_size > 512 else 4,
++    )
+ 
+     # Prepare model
+     model_wrapper.get_model().eval()
+@@ -78,13 +82,13 @@ def extract_features(model_wrapper, data_manager, model_name, dataset_name, data
+     features = []
+     metadata = {}
+ 
+-    with torch.no_grad():
++    with torch.inference_mode():
+         for batch in tqdm(
+                 data_loader, leave=False,
+                 desc=f"Extracting 'PathoROB-{dataset_name}' features for model '{model_name}'"
+         ):
+             # Extract features
+-            batch_images = batch.pop("image").to(device)
++            batch_images = batch.pop("image").to(device, non_blocking=True)
+             batch_features = model_wrapper.extract(batch_images).detach().cpu()
+ 
+             if len(batch_features.shape) != 2 or batch_features.shape[0] > batch_size:
