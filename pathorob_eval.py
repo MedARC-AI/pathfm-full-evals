@@ -35,7 +35,7 @@ if sys.argv[1] == "extract":
     atexit.register(cleanup_scratch)
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(128 + signal.SIGTERM))
     signal.signal(signal.SIGINT, lambda *_: sys.exit(128 + signal.SIGINT))
-    from model import AMP_DTYPE, EvalModel
+    from model import EvalModel
 
 
 METADATA_DIR = "/data/nanopath_full_evals/repos/PathoROB/data/metadata"
@@ -74,9 +74,7 @@ if sys.argv[1] == "extract":
 
         @torch.no_grad()
         def extract(self, data):
-            with torch.autocast(
-                "cuda", getattr(torch, AMP_DTYPE), enabled=AMP_DTYPE != "float32",
-            ):
+            with torch.autocast("cuda", torch.float16):
                 return self.encoder.clsmean_features(data).float()
 
     dataset_dir = os.path.join(FEATURES_DIR, NAME, dataset)

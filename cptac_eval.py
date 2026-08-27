@@ -50,7 +50,7 @@ if sys.argv[1] == "extract":
     from PIL import Image
     from torch.utils.data import DataLoader, IterableDataset, get_worker_info
 
-    from model import AMP_DTYPE, EXTRACTION_BATCH, EvalModel
+    from model import EXTRACTION_BATCH, EvalModel
 
     encoder = EvalModel()
     transform = encoder.transform(resize=False)
@@ -144,9 +144,7 @@ if sys.argv[1] == "extract":
         with torch.inference_mode():
             for batch_index, (images, slide_indices) in enumerate(loader):
                 slide_indices = slide_indices.cuda(non_blocking=True)
-                with torch.autocast(
-                    "cuda", getattr(torch, AMP_DTYPE), enabled=AMP_DTYPE != "float32",
-                ):
+                with torch.autocast("cuda", torch.float16):
                     features = encoder(images.cuda(non_blocking=True)).float()
                 feature_sums.index_add_(0, slide_indices, features.double())
                 counts.index_add_(0, slide_indices, torch.ones_like(slide_indices))

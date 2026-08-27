@@ -42,7 +42,6 @@ with tempfile.TemporaryDirectory() as directory:
 MODEL_NAME = "synthetic-model"
 EXTRACTION_BATCH = 64
 ATTACK_BATCH = 16
-AMP_DTYPE = "float16"
 MODEL_ASSETS = ["{asset}"]
 '''
     model_path.write_text(source)
@@ -52,8 +51,6 @@ MODEL_ASSETS = ["{asset}"]
     model_path.write_text(source)
     target = write_or_verify_manifest(model_path, root / "run")
     assert target.exists() and verify_manifest(model_path, root / "run") == target
-    model_path.write_text(source.replace('AMP_DTYPE = "float16"', 'AMP_DTYPE = "float32"'))
-    assert build_manifest(model_path) != first
     asset.write_bytes(b"checkpoint-v2")
     model_path.write_text(source)
     assert build_manifest(model_path) != first

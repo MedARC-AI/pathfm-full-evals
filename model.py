@@ -10,7 +10,6 @@ CHECKPOINT = "/data/USER/nanopath/main/RUN/latest.pt"
 MODEL_NAME = "replace-with-unique-model-name"
 EXTRACTION_BATCH = 2048
 ATTACK_BATCH = 512
-AMP_DTYPE = "float16"
 
 
 class EvalModel(torch.nn.Module):
@@ -59,9 +58,7 @@ class EvalModel(torch.nn.Module):
         # The checkpoint's saved source is authoritative: some Nanopath variants fuse
         # several block outputs and/or return a denser segmentation grid. Discover that
         # interface once instead of duplicating model-specific rules in this repository.
-        with torch.inference_mode(), torch.autocast(
-            "cuda", getattr(torch, AMP_DTYPE), enabled=AMP_DTYPE != "float32",
-        ):
+        with torch.inference_mode(), torch.autocast("cuda", torch.float16):
             image = torch.zeros(1, 3, 224, 224, device="cuda")
             classification = self.classification_features(image)
             segmentation = self.segmentation_features(image)
@@ -100,9 +97,7 @@ if __name__ == "__main__":
     assert torch.equal(resized, unresized)
     assert resized.min() < 0 and resized.max() > 0
     images = resized.unsqueeze(0).repeat(2, 1, 1, 1).cuda()
-    with torch.inference_mode(), torch.autocast(
-        "cuda", getattr(torch, AMP_DTYPE), enabled=AMP_DTYPE != "float32",
-    ):
+    with torch.inference_mode(), torch.autocast("cuda", torch.float16):
         classification = model.classification_features(images)
         segmentation = model.segmentation_features(images)
         clsmean = model.clsmean_features(images)
@@ -114,14 +109,12 @@ if __name__ == "__main__":
     assert torch.isfinite(segmentation).all()
     assert torch.isfinite(clsmean).all()
     images.requires_grad = True
-    with torch.autocast(
-        "cuda", getattr(torch, AMP_DTYPE), enabled=AMP_DTYPE != "float32",
-    ):
+    with torch.autocast("cuda", torch.float16):
         model.classification_features(images).sum().backward()
     assert images.grad is not None and torch.isfinite(images.grad).all()
     print(
         f"PASS {MODEL_NAME}: classification={tuple(classification.shape)} "
         f"segmentation={tuple(segmentation.shape)} clsmean={tuple(clsmean.shape)} "
-        f"dtype={AMP_DTYPE} normalized_input=[{resized.min():.3f}, {resized.max():.3f}]",
+        f"dtype=float16 normalized_input=[{resized.min():.3f}, {resized.max():.3f}]",
         flush=True,
     )

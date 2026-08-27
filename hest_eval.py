@@ -24,7 +24,6 @@ GROUPS = [[6, 3], [1, 5, 2], [0, 8, 4, 7]]  # 77,254 / 78,688 / 76,357 spots
 assert len(sys.argv) >= 2 and sys.argv[1] in ("extract", "extract_group", "probe", "aggregate")
 settings = read_model_settings()
 MODEL_NAME = settings["MODEL_NAME"]
-AMP_DTYPE = settings["AMP_DTYPE"]
 verify_manifest()
 assert os.environ["RETAIN_EMBEDDINGS"] in ("0", "1")
 RETAIN_EMBEDDINGS = os.environ["RETAIN_EMBEDDINGS"] == "1"
@@ -45,7 +44,7 @@ if sys.argv[1] in ("extract", "extract_group"):
     from hest.bench.st_dataset import H5PatchDataset
     from torch.utils.data import ConcatDataset, DataLoader
 
-    from model import AMP_DTYPE, EXTRACTION_BATCH, EvalModel
+    from model import EXTRACTION_BATCH, EvalModel
 
     encoder = EvalModel()
     assert encoder.name == MODEL_NAME
@@ -95,7 +94,7 @@ if sys.argv[1] in ("extract", "extract_group"):
                     pin_memory=True,
                     prefetch_factor=4 if EXTRACTION_BATCH == 512 else 2,
                 ),
-                encoder, str(temporary), "cuda", getattr(torch, AMP_DTYPE),
+                encoder, str(temporary), "cuda", torch.float16,
             )
             with h5py.File(temporary) as combined:
                 offset = 0
@@ -142,7 +141,7 @@ elif sys.argv[1] == "probe":
     _, performance = benchmark(
         torch.nn.Identity(),
         torch.nn.Identity(),
-        getattr(torch, AMP_DTYPE),
+        torch.float16,
         batch_size=512,
         num_workers=16,
         bench_data_root=BENCH_DATA_ROOT,

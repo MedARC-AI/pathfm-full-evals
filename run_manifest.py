@@ -33,7 +33,7 @@ def _sha256(path):
 def read_model_settings(model_path=REPO_ROOT / "model.py"):
     tree = ast.parse(Path(model_path).read_text())
     names = {
-        "MODEL_NAME", "AMP_DTYPE", "EXTRACTION_BATCH", "ATTACK_BATCH",
+        "MODEL_NAME", "EXTRACTION_BATCH", "ATTACK_BATCH",
         "CHECKPOINT", "MODEL_REVISION", "MODEL_ASSETS",
     }
     settings = {
@@ -45,7 +45,6 @@ def read_model_settings(model_path=REPO_ROOT / "model.py"):
     assert isinstance(settings["MODEL_NAME"], str)
     assert settings["MODEL_NAME"] == os.path.basename(settings["MODEL_NAME"])
     assert settings["MODEL_NAME"] not in ("", ".", "..")
-    assert settings["AMP_DTYPE"] in ("float16", "bfloat16", "float32")
     assert settings["EXTRACTION_BATCH"] > 0 and settings["ATTACK_BATCH"] > 0
     return settings
 
@@ -91,7 +90,6 @@ def build_manifest(model_path=REPO_ROOT / "model.py", full_asset_hashes=True):
         "protocol_version": PROTOCOL_VERSION,
         "model_name": settings["MODEL_NAME"],
         "model_revision": settings.get("MODEL_REVISION"),
-        "amp_dtype": settings["AMP_DTYPE"],
         "adapter_sha256": adapter_sha256,
         "assets": assets,
         "benchmark_commits": BENCHMARKS,

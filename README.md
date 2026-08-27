@@ -56,14 +56,16 @@ CHECKPOINT = "/data/alice/nanopath/main/my-run/latest.pt"
 MODEL_NAME = "my-run-fp16"
 EXTRACTION_BATCH = 1024
 ATTACK_BATCH = 128
-AMP_DTYPE = "float16"
 ```
+
+Encoder inference uses fp16. A full H-Optimus-0 control reproduced THUNDER calibration
+ECE at `3.981`, which rounds to the published `4.0`.
 
 `MODEL_NAME` is a permanent result identity, not a display label. Preflight binds it to:
 
 - the semantic contents of `model.py`, excluding extraction and attack batch sizes;
 - the bytes of `CHECKPOINT`, its adjacent Nanopath source, and any `MODEL_ASSETS`;
-- `AMP_DTYPE`, the benchmark commits, evaluation drivers, patches, and protocol version.
+- the benchmark commits, evaluation drivers, patches, and protocol version.
 
 If any identity-bearing input changes, preflight fails and requires a new `MODEL_NAME`.
 This prevents a changed checkpoint or transform from silently reusing old results.
@@ -212,7 +214,7 @@ Other paper shot counts and experiments are not run.
 
 - Classification features are extracted once and reused by KNN, linear probing, and
   SimpleShot.
-- Frozen features are saved as fp32; encoder calls use the adapter's `AMP_DTYPE`.
+- Encoder calls use fp16 and frozen features are saved as fp32.
 - KNN, SimpleShot, linear-head execution, and segmentation metrics use equivalent
   vectorized PyTorch implementations. Ties and floating-point rounding can differ from
   NumPy/scikit-learn.
@@ -261,8 +263,11 @@ The optimized H-Optimus-0 reproduction against the current THUNDER website is:
 | Linear macro-F1 | 83.8 | 83.8 | 0.0 |
 | 16-shot macro-F1 | 76.2 | 76.1 | -0.1 |
 | Segmentation macro-F1 | 65.2 | 65.0 | -0.2 |
-| Calibration ECE | 4.0 | 3.5 | -0.5 |
+| Calibration ECE | 4.0 | 4.0 | 0.0 |
 | PGD macro-F1 | 43.9 | 43.9 | 0.0 |
+
+The calibration reproduction used fp16 encoder inference and scored `3.981` before
+leaderboard rounding.
 
 HEST mean Pearson was `0.41493` versus the published `0.415`. PathoROB robustness
 indices were `0.70444`, `0.81214`, and `0.91780` versus published

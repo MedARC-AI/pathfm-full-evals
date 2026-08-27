@@ -41,10 +41,6 @@ ATTACK_BATCH = settings["ATTACK_BATCH"]
 verify_manifest()
 assert os.environ["RETAIN_EMBEDDINGS"] in ("0", "1")
 RETAIN_EMBEDDINGS = os.environ["RETAIN_EMBEDDINGS"] == "1"
-if mode in ("precompute", "precompute_group", "adversarial", "adversarial_group", "segmentation"):
-    from model import AMP_DTYPE
-
-
 CLS_DATASETS = [
     "bach", "bracs", "break_his", "ccrcc", "crc", "esca", "mhist", "patch_camelyon",
     "spider_breast", "spider_colorectal", "spider_skin", "spider_thorax",
@@ -107,17 +103,11 @@ if mode in ("precompute", "precompute_group", "adversarial", "adversarial_group"
             return self.encoder.transform(timm_style=True)
 
         def get_linear_probing_embeddings(self, images):
-            with torch.autocast(
-                "cuda", getattr(torch, AMP_DTYPE),
-                enabled=FAST and AMP_DTYPE != "float32",
-            ):
+            with torch.autocast("cuda", torch.float16):
                 return self.encoder.classification_features(images).float()
 
         def get_segmentation_embeddings(self, images):
-            with torch.autocast(
-                "cuda", getattr(torch, AMP_DTYPE),
-                enabled=FAST and AMP_DTYPE != "float32",
-            ):
+            with torch.autocast("cuda", torch.float16):
                 return self.encoder.segmentation_features(images).float()
 
         def forward(self, images):
