@@ -160,24 +160,28 @@ sacct -j <job> --format=JobID,JobName,State,Elapsed,MaxRSS,AllocTRES
 
 ## Work graph
 
-| Resource | Stage | Work |
-|---|---|---|
-| GPU | preflight | Manifest, data, code, environment, model, gradient, and regression validation |
-| GPU | THUNDER precompute | Classification embeddings for 16 datasets |
-| GPU | THUNDER cached | KNN, linear/calibration, and 16-shot SimpleShot |
-| CPU | THUNDER cleanup | Validate cached-probe outputs, then apply the embedding retention policy |
-| GPU | THUNDER online | Four segmentation tasks and PGD attacks |
-| CPU | THUNDER summary | Produce the six-row leaderboard summary |
-| GPU | HEST extract | Extract all nine datasets in three balanced groups |
-| CPU | HEST probes | PCA-256 and Ridge for all nine datasets |
-| CPU | HEST finalize | Aggregate Pearson scores and apply the embedding retention policy |
-| GPU | PathoROB extract | Extract all three datasets |
-| CPU | PathoROB metrics | Nine dataset/metric combinations |
-| CPU | PathoROB finalize | Validate summaries and apply the embedding retention policy |
-| GPU | CPTAC extract | Eight balanced slide shards, capped at two concurrent H100s |
-| CPU | CPTAC pool | Pool slide means to cases |
-| CPU | CPTAC probes | 38 classification fits and 12 survival-alpha fits |
-| CPU | CPTAC finalize | Aggregate results and apply the embedding retention policy |
+| Resource | Stage | Approx. Nanopath wall time | Work |
+|---|---|---:|---|
+| GPU | preflight | 1 min | Manifest, data, code, environment, model, gradient, and regression validation |
+| GPU | THUNDER precompute | 20–30 min | Classification embeddings for 16 datasets |
+| GPU | THUNDER cached | 1 hr 45 min–2 hr 15 min | KNN, linear/calibration, and 16-shot SimpleShot |
+| CPU | THUNDER cleanup | <1 min | Validate cached-probe outputs, then apply the embedding retention policy |
+| GPU | THUNDER online | 4–4.5 hr | Four segmentation tasks and PGD attacks |
+| CPU | THUNDER summary | 1 min | Produce the six-row leaderboard summary |
+| GPU | HEST extract | 3–5 min | Extract all nine datasets in three balanced groups |
+| CPU | HEST probes | 2–3 min | PCA-256 and Ridge for all nine datasets |
+| CPU | HEST finalize | <1 min | Aggregate Pearson scores and apply the embedding retention policy |
+| GPU | PathoROB extract | 5 min | Extract all three datasets |
+| CPU | PathoROB metrics | 1 hr 45 min–2 hr | Nine dataset/metric combinations |
+| CPU | PathoROB finalize | <1 min | Validate summaries and apply the embedding retention policy |
+| GPU | CPTAC extract | 50–60 min | Eight balanced slide shards, capped at two concurrent H100s |
+| CPU | CPTAC pool | <1 min | Pool slide means to cases |
+| CPU | CPTAC probes | 3–5 min | 38 classification fits and 12 survival-alpha fits |
+| CPU | CPTAC finalize | <1 min | Aggregate results and apply the embedding retention policy |
+
+Times are measured stage wall times for ViT-S Nanopath models on the shared cluster,
+excluding queue time. Array stages run tasks concurrently, and independent CPU and GPU
+branches overlap, so these values should not be summed to estimate total run time.
 
 HEST and PathoROB share one GPU array in the full run. Their CPU stages then proceed
 independently while THUNDER and CPTAC use the GPUs. By default, intermediate embeddings
