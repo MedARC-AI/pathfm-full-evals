@@ -2,8 +2,8 @@
 
 `pathfm-full-evals` evaluates one pathology image encoder on the current THUNDER
 leaderboard, HEST-bench, CPTAC/Patho-Bench, and PathoROB protocols. It is designed for
-the MedARC shared cluster, uses at most two single-H100 jobs at once, and runs expensive
-CPU probes on the CPU partition.
+the MedARC shared cluster, uses two single-H100 jobs at once per evaluated checkpoint,
+and runs expensive CPU probes on the CPU partition.
 
 This is an **optimized, leaderboard-compatible protocol**, not a bitwise execution of
 every upstream experiment. All task, metric, split, and numerical differences are listed
