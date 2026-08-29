@@ -23,9 +23,12 @@ into a user's run directory.
 | PathoROB | `/data/pathorob` |
 
 Pinned benchmark repositories and their `uv` environments live under
-`/data/nanopath_full_evals`. Every persistent artifact produced by this repository is
-isolated under `/data/$USER/pathfm-full-evals`. Node-local temporary data is isolated by
-both `$USER` and `$SLURM_JOB_ID` and is removed by the producing job.
+`/data/nanopath_full_evals`. Pretrained assets already available on the cluster must be
+loaded directly from their canonical shared paths (for example, `/data/H-optimus-0`),
+not copied into a project-local Hugging Face cache. Every persistent artifact produced
+by this repository is isolated under `/data/$USER/pathfm-full-evals`. Node-local
+temporary data is isolated by both `$USER` and `$SLURM_JOB_ID` and is removed by the
+producing job.
 
 The shared benchmark installations are pinned and patched as follows:
 
@@ -79,7 +82,7 @@ MODEL_ASSETS = ["/absolute/path/to/any/local/weight-file"]
 ```
 
 Do not use a floating model revision such as `main`. Gated Hugging Face weights must be
-downloaded before submission because compute jobs run offline.
+available at a shared `/data` path before submission because compute jobs run offline.
 
 `EvalModel` must provide:
 

@@ -15,7 +15,6 @@ from run_manifest import read_model_settings, verify_manifest
 os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
 os.environ["HF_DATASETS_OFFLINE"] = "1"
 os.environ["HF_HUB_OFFLINE"] = "1"
-os.environ["HF_HOME"] = "/data/nanopath_full_evals/huggingface"
 RUN_ROOT = f"/data/{os.environ['USER']}/pathfm-full-evals"
 PATHOROB_BATCH = 256
 

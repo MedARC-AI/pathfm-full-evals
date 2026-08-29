@@ -8,7 +8,7 @@ Coding guidelines:
 - I hate simple helper functions / classes that are only a handful of lines of code; I strongly prefer you just put the code directly where it needs to go.
 - Actively validate your changes by running code when relevant. You are currently on a login node that can access H100 compute.
 - Follow nanochat as a good example of a clean minimalist codebase, particularly with respect to how it handles train.py and model.py files
-- Read benchmark datasets directly from their canonical shared `/data` locations; store shared environments and pretrained assets under `/data/nanopath_full_evals`, and every generated evaluation artifact under `/data/$USER/pathfm-full-evals`
+- Read benchmark datasets and pretrained assets directly from their canonical shared `/data` locations; store shared environments and only assets absent elsewhere on `/data` under `/data/nanopath_full_evals`, and every generated evaluation artifact under `/data/$USER/pathfm-full-evals`
 - If changes you make lead to comments or code in other files no longer being accurate, make sure to revise those other files and comments as well so everything is accurate and up-to-date
 - Use qos=high priority (with account=sophont) for SLURM jobs. Only run single-gpu jobs, never allocate or consume more than 16 CPUs per GPU, and dont run more than 2 gpus at the same time for jobs relevant to the current codebase
 - Use wandb for logging / plotting / utilization monitoring throughout pretraining. Should include all important metrics useful to validating model training (e.g., gradient norm)
